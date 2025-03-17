@@ -1,16 +1,18 @@
 
-import React from 'react';
-import { Activity, Award, BarChart3, BookOpen, CalendarDays } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, Award, BarChart3, BookOpen, CalendarDays, Sparkles } from 'lucide-react';
 import WelcomeHeader from '@/components/dashboard/WelcomeHeader';
 import StatsCard from '@/components/dashboard/StatsCard';
 import DailyStreak from '@/components/dashboard/DailyStreak';
 import TestCard from '@/components/dashboard/TestCard';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import TestGeneratorDialog from '@/components/dashboard/TestGeneratorDialog';
 
 const Dashboard = () => {
   const { toast } = useToast();
   const userName = "Rahul"; // This would come from authentication in a real app
+  const [testGeneratorOpen, setTestGeneratorOpen] = useState(false);
   
   const handleStartTest = () => {
     toast({
@@ -23,6 +25,14 @@ const Dashboard = () => {
   return (
     <div>
       <WelcomeHeader userName={userName} />
+      
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold">Get Started</h2>
+        <Button onClick={() => setTestGeneratorOpen(true)} className="bg-practico-600 hover:bg-practico-700">
+          <Sparkles className="mr-2 h-4 w-4" />
+          Generate AI Practice Test
+        </Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
         <StatsCard 
@@ -156,6 +166,12 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+      
+      {/* Test Generator Dialog */}
+      <TestGeneratorDialog 
+        open={testGeneratorOpen} 
+        onOpenChange={setTestGeneratorOpen} 
+      />
     </div>
   );
 };
