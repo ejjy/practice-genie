@@ -16,19 +16,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, BookOpen } from 'lucide-react';
 
-// Mock data for exam types - in a real app, this would come from an API
+// Updated exam types based on the provided list
 const EXAM_TYPES = [
-  { id: 'upsc', name: 'UPSC Civil Services' },
+  { id: 'fmge', name: 'MCI FMGE Exam' },
+  { id: 'upsc-cse', name: 'UPSC Civil Services (Prelims)' },
   { id: 'ssc-cgl', name: 'SSC CGL' },
   { id: 'ssc-chsl', name: 'SSC CHSL' },
+  { id: 'ssc-gd', name: 'SSC GD/Constable' },
   { id: 'ibps-po', name: 'IBPS PO' },
   { id: 'ibps-clerk', name: 'IBPS Clerk' },
-  { id: 'rrb-ntpc', name: 'RRB NTPC' },
-  { id: 'rrb-group-d', name: 'RRB Group D' },
+  { id: 'ibps-so', name: 'IBPS SO' },
   { id: 'sbi-po', name: 'SBI PO' },
-  { id: 'neet', name: 'NEET' },
+  { id: 'sbi-clerk', name: 'SBI Clerk' },
+  { id: 'rbi-grade-b', name: 'RBI Grade B' },
+  { id: 'rrb-ntpc', name: 'RRB NTPC' },
+  { id: 'rrb-alp', name: 'RRB ALP' },
+  { id: 'rrb-group-d', name: 'RRB Group D' },
+  { id: 'cat', name: 'CAT (Common Admission Test)' },
+  { id: 'mat', name: 'MAT (Management Aptitude Test)' },
+  { id: 'cmat', name: 'CMAT (Common Management Admission Test)' },
   { id: 'jee-main', name: 'JEE Main' },
-  { id: 'ctet', name: 'CTET' },
+  { id: 'neet', name: 'NEET-UG' },
+  { id: 'gate', name: 'GATE' },
 ];
 
 // Mock question type for demonstration

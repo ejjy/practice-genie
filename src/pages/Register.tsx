@@ -139,10 +139,25 @@ const Register = () => {
                 <SelectValue placeholder="Select your target exam" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="fmge">MCI FMGE Exam</SelectItem>
+                <SelectItem value="upsc-cse">UPSC Civil Services (Prelims)</SelectItem>
                 <SelectItem value="ssc-cgl">SSC CGL</SelectItem>
-                <SelectItem value="upsc-cse">UPSC Civil Services</SelectItem>
+                <SelectItem value="ssc-chsl">SSC CHSL</SelectItem>
+                <SelectItem value="ssc-gd">SSC GD/Constable</SelectItem>
                 <SelectItem value="ibps-po">IBPS PO</SelectItem>
+                <SelectItem value="ibps-clerk">IBPS Clerk</SelectItem>
+                <SelectItem value="ibps-so">IBPS SO</SelectItem>
+                <SelectItem value="sbi-po">SBI PO</SelectItem>
+                <SelectItem value="sbi-clerk">SBI Clerk</SelectItem>
+                <SelectItem value="rbi-grade-b">RBI Grade B</SelectItem>
+                <SelectItem value="rrb-ntpc">RRB NTPC</SelectItem>
+                <SelectItem value="rrb-alp">RRB ALP</SelectItem>
+                <SelectItem value="rrb-group-d">RRB Group D</SelectItem>
                 <SelectItem value="cat">CAT</SelectItem>
+                <SelectItem value="mat">MAT</SelectItem>
+                <SelectItem value="cmat">CMAT</SelectItem>
+                <SelectItem value="jee-main">JEE Main</SelectItem>
+                <SelectItem value="neet">NEET-UG</SelectItem>
                 <SelectItem value="gate">GATE</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
