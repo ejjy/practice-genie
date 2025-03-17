@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Dialog, 
@@ -15,8 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, BookOpen } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-// Updated exam types based on the provided list
 const EXAM_TYPES = [
   { id: 'fmge', name: 'MCI FMGE Exam' },
   { id: 'upsc-cse', name: 'UPSC Civil Services (Prelims)' },
@@ -40,7 +39,6 @@ const EXAM_TYPES = [
   { id: 'gate', name: 'GATE' },
 ];
 
-// Mock question type for demonstration
 type Question = {
   id: number;
   text: string;
@@ -68,39 +66,30 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
 
-  // Function to handle form submission
   const handleGenerateTest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
     
     try {
-      // In a real app, this would be an API call to generate questions
-      // Mock data for demonstration
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
-      
-      const mockQuestions: Question[] = Array.from({ length: numQuestions }).map((_, index) => ({
-        id: index + 1,
-        text: `Sample question ${index + 1} for ${topic} in ${EXAM_TYPES.find(e => e.id === examType)?.name}?`,
-        options: [
-          `Option A for question ${index + 1}`,
-          `Option B for question ${index + 1}`,
-          `Option C for question ${index + 1}`,
-          `Option D for question ${index + 1}`,
-        ],
-        correctAnswer: Math.floor(Math.random() * 4),
-        explanation: `This is the explanation for question ${index + 1}. It explains the concept in detail and why the correct answer is the right choice.`,
-      }));
-      
-      setQuestions(mockQuestions);
-      setTestGenerated(true);
-      setTimeRemaining(timeAllowed * 60);
-      setTimerActive(true);
-      
-      toast({
-        title: "Test Generated",
-        description: `${numQuestions} questions on ${topic} for ${EXAM_TYPES.find(e => e.id === examType)?.name} have been created.`,
+      const { data, error } = await supabase.functions.invoke('generate-ai-test', {
+        body: { examType, topic, numQuestions },
       });
+      
+      if (error) throw new Error(error.message);
+      
+      if (data && data.questions) {
+        setQuestions(data.questions);
+        setTestGenerated(true);
+        setTimeRemaining(timeAllowed * 60);
+        setTimerActive(true);
+        
+        toast({
+          title: "Test Generated",
+          description: `${numQuestions} questions on ${topic} for ${EXAM_TYPES.find(e => e.id === examType)?.name} have been created.`,
+        });
+      }
     } catch (error) {
+      console.error("Error generating test:", error);
       toast({
         title: "Error",
         description: "Failed to generate test. Please try again.",
@@ -111,7 +100,6 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     }
   };
 
-  // Function to handle answer selection
   const handleAnswerSelect = (questionId: number, answerIndex: number) => {
     setSelectedAnswers(prev => ({
       ...prev,
@@ -119,12 +107,10 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     }));
   };
 
-  // Function to submit test
   const handleSubmitTest = () => {
     setShowAnswers(true);
     setTimerActive(false);
     
-    // Calculate score
     const totalQuestions = questions.length;
     const correctAnswers = questions.filter(q => 
       selectedAnswers[q.id] === q.correctAnswer
@@ -136,7 +122,6 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     });
   };
 
-  // Function to reset the dialog state
   const handleReset = () => {
     setTestGenerated(false);
     setShowAnswers(false);
@@ -145,7 +130,6 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     setQuestions([]);
   };
 
-  // Effect for the timer
   React.useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     
@@ -167,7 +151,6 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     };
   }, [timerActive, timeRemaining]);
 
-  // Format time as MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
