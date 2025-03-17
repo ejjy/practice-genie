@@ -7,6 +7,8 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rkvdrcpzfdbkoouxbtwp.supabase.co";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmRyY3B6ZmRia29vdXhidHdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMzkwMjIsImV4cCI6MjA1NzgxNTAyMn0.XLkxvFT3GUrDlT4D0BA2Sy2AclS90vMiDgzGV7PW1oY";
 
+console.log("Supabase client initialized with:", { SUPABASE_URL, SUPABASE_ANON_KEY: SUPABASE_ANON_KEY.substring(0, 10) + "..." });
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 

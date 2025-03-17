@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Dialog, 
@@ -71,11 +72,18 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     setIsGenerating(true);
     
     try {
+      console.log('Calling generate-ai-test function with:', { examType, topic, numQuestions });
+      
       const { data, error } = await supabase.functions.invoke('generate-ai-test', {
         body: { examType, topic, numQuestions },
       });
       
-      if (error) throw new Error(error.message);
+      console.log('Function response:', { data, error });
+      
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to generate test');
+      }
       
       if (data && data.questions) {
         setQuestions(data.questions);
@@ -87,6 +95,8 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
           title: "Test Generated",
           description: `${numQuestions} questions on ${topic} for ${EXAM_TYPES.find(e => e.id === examType)?.name} have been created.`,
         });
+      } else {
+        throw new Error('No questions returned from the function');
       }
     } catch (error) {
       console.error("Error generating test:", error);
