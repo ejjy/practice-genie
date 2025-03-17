@@ -20,29 +20,65 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [examPreference, setExamPreference] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!agreedToTerms) {
+      toast({
+        title: 'Terms and Privacy',
+        description: 'Please agree to the Terms of Service and Privacy Policy',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Mock registration for demo
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Register the user with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            exam_preference: examPreference,
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Successfully registered
       toast({
         title: 'Account created!',
         description: 'Welcome to Practico. Your account has been created successfully.',
       });
       navigate('/dashboard');
-    }, 1500);
+    } catch (error: any) {
+      toast({
+        title: 'Registration failed',
+        description: error.message || 'An error occurred during registration. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -114,9 +150,11 @@ const Register = () => {
           </div>
           
           <div className="flex items-center space-x-2">
-            <div className="grid h-4 w-4 place-items-center rounded-sm border">
-              <div className="h-2 w-2 rounded-sm bg-primary"></div>
-            </div>
+            <Checkbox 
+              id="terms" 
+              checked={agreedToTerms}
+              onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+            />
             <Label htmlFor="terms" className="text-sm">
               I agree to the{' '}
               <Link to="/terms" className="text-practico-600 hover:underline">
