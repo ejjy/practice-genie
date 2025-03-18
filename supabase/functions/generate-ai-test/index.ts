@@ -22,28 +22,43 @@ serve(async (req) => {
     let requestData;
     try {
       requestData = await req.json();
-      console.log("Successfully parsed request body:", requestData);
+      console.log("Request data:", JSON.stringify(requestData));
     } catch (e) {
       console.error("Error parsing request body:", e);
-      throw new Error("Invalid request format: " + e.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid request format", details: e.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
     const { examType, topic, numQuestions } = requestData;
     
     // Validate parameters
     if (!examType) {
-      throw new Error("Missing required parameter: examType");
+      console.error("Missing examType parameter");
+      return new Response(
+        JSON.stringify({ error: "Missing required parameter: examType" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     if (!topic) {
-      throw new Error("Missing required parameter: topic");
+      console.error("Missing topic parameter");
+      return new Response(
+        JSON.stringify({ error: "Missing required parameter: topic" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    if (!numQuestions || isNaN(numQuestions)) {
-      throw new Error("Invalid or missing numQuestions parameter");
+    if (!numQuestions || isNaN(parseInt(String(numQuestions)))) {
+      console.error("Invalid numQuestions parameter:", numQuestions);
+      return new Response(
+        JSON.stringify({ error: "Invalid or missing numQuestions parameter" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log("Generating questions with parameters:", { examType, topic, numQuestions });
+    console.log(`Generating questions: examType=${examType}, topic=${topic}, numQuestions=${numQuestions}`);
     
-    // Mock data generation function
+    // Generate mock questions
     function generateMockQuestions(examType, topic, numQuestions) {
       console.log(`Generating ${numQuestions} questions for ${examType} on topic ${topic}`);
       const questions = [];
@@ -114,31 +129,38 @@ serve(async (req) => {
       return questions;
     }
     
-    // Generate mock questions
-    const generatedQuestions = generateMockQuestions(examType, topic, parseInt(String(numQuestions)));
+    // Generate the questions
+    const requestedNumQuestions = parseInt(String(numQuestions));
+    const generatedQuestions = generateMockQuestions(examType, topic, requestedNumQuestions);
     
+    // Verify questions were generated
     if (!generatedQuestions || !Array.isArray(generatedQuestions) || generatedQuestions.length === 0) {
-      throw new Error("Failed to generate questions");
+      console.error("Failed to generate questions");
+      return new Response(
+        JSON.stringify({ error: "Failed to generate questions" }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
-    console.log(`Responding with ${generatedQuestions.length} questions`);
+    console.log(`Successfully generated ${generatedQuestions.length} questions`);
     
     // Return the generated questions
-    return new Response(JSON.stringify({ 
-      questions: generatedQuestions,
-      message: "Test generated successfully"
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        questions: generatedQuestions,
+        message: "Test generated successfully"
+      }), 
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
     
   } catch (error) {
     console.error('Error in generate-ai-test function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message, 
-      message: "Failed to generate test questions" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message, 
+        message: "Failed to generate test questions" 
+      }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });

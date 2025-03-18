@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Check, BookOpen } from 'lucide-react';
+import { Loader2, Check, BookOpen, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const EXAM_TYPES = [
@@ -76,20 +76,25 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     try {
       console.log('Calling generate-ai-test function with:', { examType, topic, numQuestions });
       
-      // Log Supabase URL and key availability for debugging
+      // Check if we have the Supabase configuration
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://rkvdrcpzfdbkoouxbtwp.supabase.co";
       console.log('Using Supabase URL:', supabaseUrl);
       console.log('Supabase anon key available:', !!import.meta.env.VITE_SUPABASE_ANON_KEY || 'Using fallback key');
       
+      const requestBody = { 
+        examType, 
+        topic, 
+        numQuestions: parseInt(String(numQuestions)) 
+      };
+      
+      console.log('Request body:', JSON.stringify(requestBody));
+      
+      // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('generate-ai-test', {
-        body: { 
-          examType, 
-          topic, 
-          numQuestions: parseInt(String(numQuestions)) 
-        },
+        body: requestBody,
       });
       
-      console.log('Function response received:', { data, error });
+      console.log('Function response:', JSON.stringify({ data, error }));
       
       if (error) {
         console.error('Supabase function error:', error);
@@ -97,26 +102,40 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
         throw new Error(error.message || 'Failed to generate test');
       }
       
-      if (data && data.questions && Array.isArray(data.questions)) {
-        console.log('Setting questions:', data.questions);
-        setQuestions(data.questions);
-        setTestGenerated(true);
-        setTimeRemaining(timeAllowed * 60);
-        setTimerActive(true);
-        
-        toast({
-          title: "Test Generated",
-          description: `${numQuestions} questions on ${topic} for ${EXAM_TYPES.find(e => e.id === examType)?.name} have been created.`,
-        });
-      } else {
-        console.error('Invalid response format or missing questions array:', data);
-        setFunctionError('Invalid response from the test generator');
-        throw new Error('No questions returned from the function or invalid format');
+      if (!data) {
+        console.error('No data returned from function');
+        setFunctionError('No data returned from the test generator');
+        throw new Error('No data returned from the function');
       }
+      
+      if (!data.questions || !Array.isArray(data.questions)) {
+        console.error('Invalid response format:', data);
+        setFunctionError('Invalid response format from the test generator');
+        throw new Error('Invalid response format: questions array is missing or not an array');
+      }
+      
+      if (data.questions.length === 0) {
+        console.error('Empty questions array returned');
+        setFunctionError('No questions were generated. Please try again.');
+        throw new Error('No questions generated');
+      }
+      
+      console.log(`Successfully received ${data.questions.length} questions:`, data.questions);
+      
+      setQuestions(data.questions);
+      setTestGenerated(true);
+      setTimeRemaining(timeAllowed * 60);
+      setTimerActive(true);
+      
+      toast({
+        title: "Test Generated",
+        description: `${data.questions.length} questions on ${topic} for ${EXAM_TYPES.find(e => e.id === examType)?.name} have been created.`,
+      });
     } catch (error) {
       console.error("Error generating test:", error);
+      
       toast({
-        title: "Error",
+        title: "Error Generating Test",
         description: error instanceof Error ? error.message : "Failed to generate test. Please try again.",
         variant: "destructive",
       });
@@ -260,9 +279,12 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
               </div>
 
               {functionError && (
-                <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm">
-                  <p className="font-semibold">Error:</p>
-                  <p>{functionError}</p>
+                <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-600 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Error:</p>
+                    <p>{functionError}</p>
+                  </div>
                 </div>
               )}
               
