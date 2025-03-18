@@ -38,6 +38,14 @@ const Index = () => {
         {/* Hero Section */}
         <section className="py-20 px-4 md:px-6">
           <div className="container mx-auto max-w-6xl">
+            {/* Brand Showcase */}
+            <div className="text-center mb-16">
+              <Logo size="lg" className="mx-auto mb-4" />
+              <h2 className="text-2xl md:text-3xl font-medium text-muted-foreground">
+                The Smart Way to Prepare for Competitive Exams
+              </h2>
+            </div>
+            
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
@@ -128,7 +136,7 @@ const Index = () => {
         <section className="py-16 bg-muted/30">
           <div className="container mx-auto max-w-6xl px-4 md:px-6">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Why Choose Practico?</h2>
+              <h2 className="text-3xl font-bold mb-4">Why Choose <span className="practico-gradient-text">Practico</span>?</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 Our platform combines cutting-edge AI technology with proven study methods to help you achieve your goals.
               </p>
@@ -154,7 +162,7 @@ const Index = () => {
             <div className="rounded-2xl practico-gradient text-white p-10 md:p-16">
               <div className="max-w-2xl mx-auto text-center">
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                  Ready to ace your competitive exams?
+                  Ready to ace your competitive exams with <span className="underline decoration-4 decoration-white/50">Practico</span>?
                 </h2>
                 <p className="text-lg opacity-90 mb-8">
                   Join thousands of students who have improved their scores with Practico's personalized practice platform.
