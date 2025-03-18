@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Filter, Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,8 +17,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import TestGeneratorDialog from '@/components/dashboard/TestGeneratorDialog';
 
 // Define the type for the difficulty property
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -38,7 +36,7 @@ interface Test {
 const TestsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [difficulty, setDifficulty] = useState('all');
-  const [topicPrompt, setTopicPrompt] = useState('');
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const { toast } = useToast();
   
   const handleStartTest = () => {
@@ -47,31 +45,6 @@ const TestsPage = () => {
       description: "Your test has begun. Good luck!",
     });
     // In a real app, we'd navigate to the test page
-  };
-
-  const handleGenerateCustomTest = () => {
-    if (!topicPrompt.trim()) {
-      toast({
-        title: "Topic Required",
-        description: "Please enter a topic to generate questions for.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Generating Custom Test",
-      description: `Creating questions for "${topicPrompt}". This will include relevant questions for Indian competitive exams.`,
-    });
-
-    // In a real app, we would call an AI service to generate questions
-    setTimeout(() => {
-      toast({
-        title: "Test Ready",
-        description: "Your custom test has been created and is ready to take.",
-      });
-      setTopicPrompt('');
-    }, 2000);
   };
 
   // Mock test data
@@ -249,37 +222,15 @@ const TestsPage = () => {
           Create personalized tests based on any topic. Our AI will generate questions based on previous exam patterns and current affairs.
         </p>
         
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Generate Custom Test
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create AI-Generated Test</DialogTitle>
-              <DialogDescription>
-                Enter a topic or subject and our AI will create questions based on previous year papers and current affairs relevant to Indian competitive exams.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-4">
-              <Textarea 
-                placeholder="e.g., Indian Constitution, Current Budget 2023, SSC CGL Quantitative Aptitude"
-                className="min-h-[120px]"
-                value={topicPrompt}
-                onChange={(e) => setTopicPrompt(e.target.value)}
-              />
-            </div>
-            
-            <DialogFooter>
-              <Button onClick={handleGenerateCustomTest}>
-                Generate Questions
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setIsGeneratorOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Generate Custom Test
+        </Button>
+        
+        <TestGeneratorDialog 
+          open={isGeneratorOpen}
+          onOpenChange={setIsGeneratorOpen}
+        />
       </div>
       
       <Tabs defaultValue="daily" className="space-y-6">

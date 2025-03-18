@@ -66,26 +66,39 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const [functionError, setFunctionError] = useState<string | null>(null);
 
   const handleGenerateTest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
+    setFunctionError(null);
     
     try {
       console.log('Calling generate-ai-test function with:', { examType, topic, numQuestions });
       
+      // Log Supabase URL and key availability for debugging
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://rkvdrcpzfdbkoouxbtwp.supabase.co";
+      console.log('Using Supabase URL:', supabaseUrl);
+      console.log('Supabase anon key available:', !!import.meta.env.VITE_SUPABASE_ANON_KEY || 'Using fallback key');
+      
       const { data, error } = await supabase.functions.invoke('generate-ai-test', {
-        body: { examType, topic, numQuestions },
+        body: { 
+          examType, 
+          topic, 
+          numQuestions: parseInt(String(numQuestions)) 
+        },
       });
       
-      console.log('Function response:', { data, error });
+      console.log('Function response received:', { data, error });
       
       if (error) {
         console.error('Supabase function error:', error);
+        setFunctionError(error.message || 'Failed to generate test');
         throw new Error(error.message || 'Failed to generate test');
       }
       
-      if (data && data.questions) {
+      if (data && data.questions && Array.isArray(data.questions)) {
+        console.log('Setting questions:', data.questions);
         setQuestions(data.questions);
         setTestGenerated(true);
         setTimeRemaining(timeAllowed * 60);
@@ -96,13 +109,15 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
           description: `${numQuestions} questions on ${topic} for ${EXAM_TYPES.find(e => e.id === examType)?.name} have been created.`,
         });
       } else {
-        throw new Error('No questions returned from the function');
+        console.error('Invalid response format or missing questions array:', data);
+        setFunctionError('Invalid response from the test generator');
+        throw new Error('No questions returned from the function or invalid format');
       }
     } catch (error) {
       console.error("Error generating test:", error);
       toast({
         title: "Error",
-        description: "Failed to generate test. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate test. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -243,6 +258,13 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
                   />
                 </div>
               </div>
+
+              {functionError && (
+                <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm">
+                  <p className="font-semibold">Error:</p>
+                  <p>{functionError}</p>
+                </div>
+              )}
               
               <DialogFooter>
                 <Button type="submit" disabled={isGenerating}>

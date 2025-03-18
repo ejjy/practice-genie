@@ -2,7 +2,6 @@
 // Import necessary Deno modules
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +11,7 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -19,13 +19,33 @@ serve(async (req) => {
     console.log("Function called: generate-ai-test");
     
     // Parse the request body
-    const requestData = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log("Successfully parsed request body:", requestData);
+    } catch (e) {
+      console.error("Error parsing request body:", e);
+      throw new Error("Invalid request format: " + e.message);
+    }
+    
     const { examType, topic, numQuestions } = requestData;
     
-    console.log("Request parameters:", { examType, topic, numQuestions });
+    // Validate parameters
+    if (!examType) {
+      throw new Error("Missing required parameter: examType");
+    }
+    if (!topic) {
+      throw new Error("Missing required parameter: topic");
+    }
+    if (!numQuestions || isNaN(numQuestions)) {
+      throw new Error("Invalid or missing numQuestions parameter");
+    }
+
+    console.log("Generating questions with parameters:", { examType, topic, numQuestions });
     
     // Mock data generation function
     function generateMockQuestions(examType, topic, numQuestions) {
+      console.log(`Generating ${numQuestions} questions for ${examType} on topic ${topic}`);
       const questions = [];
       
       for (let i = 0; i < numQuestions; i++) {
@@ -90,14 +110,20 @@ serve(async (req) => {
         });
       }
       
+      console.log(`Generated ${questions.length} questions successfully`);
       return questions;
     }
     
     // Generate mock questions
-    const generatedQuestions = generateMockQuestions(examType, topic, numQuestions);
+    const generatedQuestions = generateMockQuestions(examType, topic, parseInt(String(numQuestions)));
     
-    console.log(`Generated ${generatedQuestions.length} questions successfully`);
+    if (!generatedQuestions || !Array.isArray(generatedQuestions) || generatedQuestions.length === 0) {
+      throw new Error("Failed to generate questions");
+    }
     
+    console.log(`Responding with ${generatedQuestions.length} questions`);
+    
+    // Return the generated questions
     return new Response(JSON.stringify({ 
       questions: generatedQuestions,
       message: "Test generated successfully"
