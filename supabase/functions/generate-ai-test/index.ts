@@ -2,6 +2,7 @@
 // Import necessary Deno modules
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +32,8 @@ serve(async (req) => {
       );
     }
     
-    const { examType, topic, numQuestions } = requestData;
+    const { examType, topic, numQuestions, saveToDatabase } = requestData;
+    const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
     
     // Validate parameters
     if (!examType) {
@@ -56,7 +58,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating questions: examType=${examType}, topic=${topic}, numQuestions=${numQuestions}`);
+    console.log(`Generating questions: examType=${examType}, topic=${topic}, numQuestions=${numQuestions}, saveToDatabase=${saveToDatabase}`);
     
     // Generate mock questions
     function generateMockQuestions(examType, topic, numQuestions) {
@@ -144,11 +146,80 @@ serve(async (req) => {
     
     console.log(`Successfully generated ${generatedQuestions.length} questions`);
     
+    // Save to database if requested and auth token is provided
+    let testId = null;
+    if (saveToDatabase && auth) {
+      try {
+        // Create Supabase client
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (!supabaseUrl || !supabaseServiceKey) {
+          throw new Error("Missing Supabase credentials in environment");
+        }
+        
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Get user from auth token
+        const { data: { user }, error: userError } = await supabase.auth.getUser(auth);
+        
+        if (userError || !user) {
+          console.error("User authentication error:", userError);
+          throw new Error("Failed to authenticate user");
+        }
+        
+        // Create test record
+        const testTitle = `${topic} (${examType})`;
+        const { data: testData, error: testError } = await supabase
+          .from('tests')
+          .insert({
+            user_id: user.id,
+            title: testTitle,
+            description: `Generated test on ${topic} for ${examType}`,
+            exam_type: examType,
+            topic: topic
+          })
+          .select()
+          .single();
+        
+        if (testError) {
+          console.error("Error creating test:", testError);
+          throw new Error("Failed to save test");
+        }
+        
+        testId = testData.id;
+        
+        // Insert questions
+        const questionInserts = generatedQuestions.map(q => ({
+          test_id: testId,
+          text: q.text,
+          options: q.options,
+          correct_answer: q.correctAnswer,
+          explanation: q.explanation
+        }));
+        
+        const { error: questionsError } = await supabase
+          .from('questions')
+          .insert(questionInserts);
+        
+        if (questionsError) {
+          console.error("Error inserting questions:", questionsError);
+          throw new Error("Failed to save questions");
+        }
+        
+        console.log(`Successfully saved test to database with ID: ${testId}`);
+      } catch (error) {
+        console.error("Database save error:", error);
+        // Continue even if save fails, just log the error
+      }
+    }
+    
     // Return the generated questions
     return new Response(
       JSON.stringify({ 
         questions: generatedQuestions,
-        message: "Test generated successfully"
+        message: "Test generated successfully",
+        testId: testId
       }), 
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

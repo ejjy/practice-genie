@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check, BookOpen, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const EXAM_TYPES = [
   { id: 'fmge', name: 'MCI FMGE Exam' },
@@ -55,10 +57,12 @@ type TestGeneratorDialogProps = {
 
 const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) => {
   const { toast } = useToast();
+  const { user, session } = useAuth();
   const [examType, setExamType] = useState('');
   const [topic, setTopic] = useState('');
   const [numQuestions, setNumQuestions] = useState(10);
   const [timeAllowed, setTimeAllowed] = useState(15);
+  const [saveToDatabase, setSaveToDatabase] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [testGenerated, setTestGenerated] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -67,6 +71,7 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [functionError, setFunctionError] = useState<string | null>(null);
+  const [testId, setTestId] = useState<string | null>(null);
 
   const handleGenerateTest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +79,7 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     setFunctionError(null);
     
     try {
-      console.log('Calling generate-ai-test function with:', { examType, topic, numQuestions });
+      console.log('Calling generate-ai-test function with:', { examType, topic, numQuestions, saveToDatabase });
       
       // Check if we have the Supabase configuration
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://rkvdrcpzfdbkoouxbtwp.supabase.co";
@@ -84,14 +89,21 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
       const requestBody = { 
         examType, 
         topic, 
-        numQuestions: parseInt(String(numQuestions)) 
+        numQuestions: parseInt(String(numQuestions)),
+        saveToDatabase: saveToDatabase && !!user
       };
       
       console.log('Request body:', JSON.stringify(requestBody));
       
+      // Get the session token for authentication
+      const authHeader = session?.access_token ? { 
+        Authorization: `Bearer ${session.access_token}`
+      } : undefined;
+      
       // Call the Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('generate-ai-test', {
         body: requestBody,
+        headers: authHeader
       });
       
       console.log('Function response:', JSON.stringify({ data, error }));
@@ -127,6 +139,12 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
       setTimeRemaining(timeAllowed * 60);
       setTimerActive(true);
       
+      // Store the test ID if it was saved to the database
+      if (data.testId) {
+        setTestId(data.testId);
+        console.log(`Test saved with ID: ${data.testId}`);
+      }
+      
       toast({
         title: "Test Generated",
         description: `${data.questions.length} questions on ${topic} for ${EXAM_TYPES.find(e => e.id === examType)?.name} have been created.`,
@@ -151,7 +169,7 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     }));
   };
 
-  const handleSubmitTest = () => {
+  const handleSubmitTest = async () => {
     setShowAnswers(true);
     setTimerActive(false);
     
@@ -159,6 +177,21 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     const correctAnswers = questions.filter(q => 
       selectedAnswers[q.id] === q.correctAnswer
     ).length;
+    
+    // Save test attempt if we have a test ID
+    if (testId && user) {
+      try {
+        await supabase.from('test_attempts').insert({
+          user_id: user.id,
+          test_id: testId,
+          score: correctAnswers,
+          max_score: totalQuestions
+        });
+        console.log('Test attempt saved successfully');
+      } catch (error) {
+        console.error('Error saving test attempt:', error);
+      }
+    }
     
     toast({
       title: "Test Submitted",
@@ -172,6 +205,7 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
     setSelectedAnswers({});
     setTimerActive(false);
     setQuestions([]);
+    setTestId(null);
   };
 
   React.useEffect(() => {
@@ -277,6 +311,26 @@ const TestGeneratorDialog = ({ open, onOpenChange }: TestGeneratorDialogProps) =
                   />
                 </div>
               </div>
+              
+              {user && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="saveToDatabase" 
+                    checked={saveToDatabase}
+                    onCheckedChange={(checked) => setSaveToDatabase(!!checked)}
+                  />
+                  <Label htmlFor="saveToDatabase">Save this test to my account</Label>
+                </div>
+              )}
+              
+              {!user && (
+                <div className="p-3 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
+                  <div>
+                    <p>You are not logged in. Sign in to save tests to your account.</p>
+                  </div>
+                </div>
+              )}
 
               {functionError && (
                 <div className="p-3 rounded-md bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-2">
